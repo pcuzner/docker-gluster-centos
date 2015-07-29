@@ -1,0 +1,6 @@
+{
+  "AtomicHost": "atomic-1",
+  "NodeName": "gluster-1",
+  "IPAddress": "10.1.1.1",
+  "PeerUUID": "80c2d64b-156e-45bb-99fa-65cc785bfcc8"
+}

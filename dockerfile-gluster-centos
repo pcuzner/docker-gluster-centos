@@ -1,0 +1,20 @@
+FROM centos:latest
+MAINTAINER Paul Cuzner <pcuzner@redhat.com> 
+ENV container docker
+
+#RUN yum -y update
+
+RUN yum -y swap -- remove fakesystemd -- install systemd systemd-libs
+RUN yum --setopt=tsflags=nodocs -y install wget nfs-utils openssh-server openssh-clients attr iputils iproute net-tools
+RUN yum -y install http://dl.fedoraproject.org/pub/epel/7/x86_64/e/epel-release-7-5.noarch.rpm 
+RUN wget http://download.gluster.org/pub/gluster/glusterfs/3.7/LATEST/CentOS/glusterfs-epel.repo -O /etc/yum.repos.d/glusterfs-epel.repo
+
+RUN yum --setopt=tsflags=nodocs -y install glusterfs glusterfs-server glusterfs-fuse glusterfs-geo-replication glusterfs-cli glusterfs-api
+
+RUN systemctl enable glusterd.service sshd.service
+ADD entrypoint.sh /entrypoint.sh
+RUN echo "root:password" | chpasswd
+EXPOSE 22 111 245 443 24007 2049 8080 6010 6011 6012 38465 38466 38468 38469 49152 49153 49154 49156 49157 49158 49159 49160 49161 49162
+VOLUME [ "/sys/fs/cgroup" ]
+ENTRYPOINT ["/entrypoint.sh"]
+#CMD ["/usr/sbin/init"]
