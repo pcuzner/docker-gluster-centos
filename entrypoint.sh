@@ -4,23 +4,10 @@
 
 set -e
 
-function element_in {
-  #
-  # Checks whether a given string is in an array
-  # Input: 2 parms, $1 = string to search for, $2 is the array to search
-  #
-  
-  local element
-  for element in "${@:2}"; do
-  
-    if [ "$element" == "$1" ]; then 
-      return 0
-    fi
-    
-  done
-  
-  return 1 
-}
+if [ -e /utils.sh ]; then 
+  . /utils.sh
+fi
+
 function glusterd_port_available {
 
   netstat -4 -tan | awk '/^tcp/ {print $4;}' | grep 24007 &> /dev/null
@@ -29,16 +16,6 @@ function glusterd_port_available {
   else
     return 0
   fi
-}
-
-function log_msg {
-  #
-  # Write msgs to stdout, making them available to "docker logs"
-  #
-  
-  local now=$(date +'%b %e %T')
-  local host_name=$(printf "%-12s" $(hostname -s))
-  printf "${now} ${host_name} [/entrypoint.sh] $1\n"
 }
 
 function run_services {
@@ -69,18 +46,30 @@ function get_config_from_kvstore {
 				python -c 'import json,sys;obj=json.load(sys.stdin);print obj["IPAddress"]' 2> /dev/null)
 	if [ $? -gt 0 ]; then 
 	  unset NODE_IP
-	fi			
+	fi
+	log_msg "-> Node IP .... $NODE_IP"			
     NODENAME=$(echo $etcd_data | \
 				python -c 'import json,sys;obj=json.load(sys.stdin);print obj["NodeName"]' 2> /dev/null)
     if [ $? -gt 0 ]; then 
 	  unset NODENAME
 	fi			
+	log_msg "-> Node Name .. $NODENAME"			
 	PEER_UUID=$(echo $etcd_data | \
 				python -c 'import json,sys;obj=json.load(sys.stdin);print obj["PeerUUID"]' 2> /dev/null)
 	if [ $? -gt 0 ]; then 
 	  unset PEER_UUID
 	fi	
-			
+	log_msg "-> UUID ....... $PEER_UUID"				
+	
+	PEER_LIST=$(echo $etcd_data | \
+				python -c 'import json,sys;config=json.load(sys.stdin); peer_ips=",".join([peer["IP"] for peer in config["PeerList"]]) if "PeerList" in config else None; print peer_ips' 2> /dev/null)
+	if [ "$PEER_LIST" == "None" ]; then 
+	  unset PEER_LIST
+	  log_msg "-> container will not attempt to form a cluster"
+
+	else		
+	  log_msg "-> Peers ...... $PEER_LIST"
+	fi
   fi
 }
 
@@ -190,6 +179,13 @@ if glusterd_port_available; then
 
   configure_network
   
+  # if we have peers defined, then fork a shell to try and create the cluster
+  if [ ! -z ${PEER_LIST+x} ] ; then 
+    log_msg "forking the create_cluster process"
+    /create_cluster.sh "$NODE_IP" "$PEER_LIST" &
+  fi
+  
+  # start normal systemd start-up process
   run_services
   
 else
