@@ -1,6 +1,6 @@
 {
-  "AtomicHost": "atomic-2",
-  "NodeName": "gluster-2",
+  "HostName": "atomic-2",
+  "GlusterNodeName": "gluster-2",
   "IPAddress": "10.1.1.2",
   "PeerUUID": "58bcccae-9275-4ae7-894e-6af4b231c298"
 }
