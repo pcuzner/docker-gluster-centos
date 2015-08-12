@@ -1,0 +1,4 @@
+change json naming from AtomicHost to HostName
+change json NodeName to GlusterNodeName
+update etcdupdate.sh with --peers <ip> to ensure it works in a larger environment
+ 
