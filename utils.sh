@@ -1,5 +1,21 @@
 #!/bin/bash
 
+function log_msg {
+  #
+  # Write msgs to stdout, making them available to "docker logs"
+  #
+  
+  local now=$(date +'%b %e %T')
+  local logger=$(basename "$0")
+  local host_name=$(printf "%-12s" $(hostname -s))
+  printf "${now} ${host_name} [${logger}] $1\n"
+}
+
+function port_open {
+  return $(nc "$1" "$2" < /dev/null &> /dev/null; echo $?)
+}
+
+
 function element_in {
   #
   # Checks whether a given string is in an array
@@ -18,16 +34,6 @@ function element_in {
   return 1 
 }
 
-function log_msg {
-  #
-  # Write msgs to stdout, making them available to "docker logs"
-  #
-  
-  local now=$(date +'%b %e %T')
-  local logger=$(basename "$0")
-  local host_name=$(printf "%-12s" $(hostname -s))
-  printf "${now} ${host_name} [${logger}] $1\n"
-}
 
 function join { 
 	local IFS="$1"
