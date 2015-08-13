@@ -47,19 +47,19 @@ function get_config_from_kvstore {
 	if [ $? -gt 0 ]; then 
 	  unset NODE_IP
 	fi
-	log_msg "-> Node IP .... $NODE_IP"			
+	log_msg "-> Gluster Node IP .... $NODE_IP"			
     NODENAME=$(echo $etcd_data | \
-				python -c 'import json,sys;obj=json.load(sys.stdin);print obj["NodeName"]' 2> /dev/null)
+				python -c 'import json,sys;obj=json.load(sys.stdin);print obj["GlusterNodeName"]' 2> /dev/null)
     if [ $? -gt 0 ]; then 
 	  unset NODENAME
 	fi			
-	log_msg "-> Node Name .. $NODENAME"			
+	log_msg "-> Gluster Name ....... $NODENAME"			
 	PEER_UUID=$(echo $etcd_data | \
 				python -c 'import json,sys;obj=json.load(sys.stdin);print obj["PeerUUID"]' 2> /dev/null)
 	if [ $? -gt 0 ]; then 
 	  unset PEER_UUID
 	fi	
-	log_msg "-> UUID ....... $PEER_UUID"				
+	log_msg "-> UUID ............... $PEER_UUID"				
 	
 	PEER_LIST=$(echo $etcd_data | \
 				python -c 'import json,sys;config=json.load(sys.stdin); peer_ips=",".join([peer["IP"] for peer in config["PeerList"]]) if "PeerList" in config else None; print peer_ips' 2> /dev/null)
@@ -68,7 +68,7 @@ function get_config_from_kvstore {
 	  log_msg "-> container will not attempt to form a cluster"
 
 	else		
-	  log_msg "-> Peers ...... $PEER_LIST"
+	  log_msg "-> Peer List .......... $PEER_LIST"
 	fi
   fi
 }
@@ -133,7 +133,7 @@ function configure_network {
     
   else
     
-    log_msg "NODE_IP is set to $NODE_IP, checking this IP is available on this host"
+    log_msg "checking $NODE_IP is available on this host"
     if IP_OK; then 
         
       # IP address provided is valid, so configure the services
@@ -149,7 +149,7 @@ function configure_network {
         
     else
         
-      log_msg "IP address of $NODE_IP is not available on this host. Can not start the container"
+      log_msg "IP address $NODE_IP is not available on this host. Can not start the container"
       exit 1
       
     fi
