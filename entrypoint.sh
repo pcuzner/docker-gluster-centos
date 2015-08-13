@@ -30,8 +30,14 @@ function run_services {
 
 function get_config_from_kvstore {
   local host_name=$(hostname -s)
-  
-  # attempt to get the config data 
+ 
+  if ! port_open ${KV_IP} 4001; then 
+    log_msg "Unable to detect etcd at http://${KV_IP}:4001. Can not continue"
+    exit 1
+  fi 
+
+ 
+  # at this point, etcd is present, so we attempt to get the config data for this host 
   etcd_response=$(curl -s http://${KV_IP}:4001/v2/keys/gluster/config/$host_name)
   if [[ "$etcd_data" == *"error"* ]]; then  
   
