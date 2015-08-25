@@ -15,6 +15,14 @@ function port_open {
   return $(nc "$1" "$2" < /dev/null &> /dev/null; echo $?)
 }
 
+function empty_dir {
+  # check whether a given directory is empty
+  if [ "$(ls -A ${1}/* &> /dev/null; echo $?)" -gt 0 ]; then 
+    return 0
+  else
+    return 1
+  fi
+}
 
 function element_in {
   #
@@ -39,4 +47,18 @@ function join {
 	local IFS="$1"
 	shift 
 	echo "$*"
+}
+
+function IP_OK {
+  #
+  # check that the IP matches one of the IP's on the host machine
+  #
+  
+  IFS=$'\n' IP_LIST=($(ip -4 -o addr | sed -e "s/\//\ /g"| awk '{print $4;}'))
+  if element_in $1 ${IP_LIST[@]} ; then 
+    return 0
+  else
+    return 1 
+  fi
+	
 }

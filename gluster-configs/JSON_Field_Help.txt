@@ -1,0 +1,17 @@
+
+JSON field description;
+
+|
++--"HostName" .......... Atomic Host name
+|
++--"GlusterNodeName" ... Name to give the container (hostname -s)
+|
++--"IPAddress" ......... IP address and netmask of container (e.g. 10.1.1.1/24)
+|
++--"BrickDevice" ....... device to use for a brick e.g. /dev/sda
+|
++--"ZapDevice": "true" . confirm brick device is to be wiped if it is currently used
+|
++--"PeerList": ......... list of names/IPs for the nodes that will form the trusted pool
+    +-- IP": ........... Ip address or name of a peer 
+

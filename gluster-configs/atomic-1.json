@@ -1,17 +1,7 @@
 {
   "HostName": "atomic-1",
   "GlusterNodeName": "gluster-1",
-  "IPAddress": "10.1.1.1",
-  "PeerUUID": "9b9e4f9f-3566-4d11-87a7-7d5f4e3e9e1f",
-  "PeerList": [
-    { 
-      "IP" : "10.1.1.2"
-    },
-    { 
-      "IP" : "10.1.1.3"
-    },
-    { 
-      "IP" : "10.1.1.4"
-    }    
-  ]
+  "IPAddress": "10.1.1.1/24",
+  "BrickDevice": "/dev/sda",
+  "ZapDevice": "true"
 }

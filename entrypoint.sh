@@ -2,10 +2,8 @@
 #
 #
 
-set -e
-
-if [ -e /utils.sh ]; then 
-  . /utils.sh
+if [ -e /build/utils.sh ]; then 
+  . /build/utils.sh
 fi
 
 function glusterd_port_available {
@@ -41,34 +39,40 @@ function get_config_from_kvstore {
   etcd_response=$(curl -s http://${KV_IP}:4001/v2/keys/gluster/config/$host_name)
   if [[ "$etcd_data" == *"error"* ]]; then  
   
-    log_msg "KV config entry for the running host does not exist"
+    log_msg "etcd config entry for the running host does not exist"
     return
     
   else
     etcd_data=$(echo $etcd_response | \
 				python -c 'import json,sys;obj=json.load(sys.stdin);print obj["node"]["value"]')
-    
-    NODE_IP=$(echo $etcd_data | \
-				python -c 'import json,sys;obj=json.load(sys.stdin);print obj["IPAddress"]' 2> /dev/null)
-	if [ $? -gt 0 ]; then 
-	  unset NODE_IP
+    IP_INFO=$(echo $etcd_data | \
+			python -c 'import json,sys;obj=json.load(sys.stdin); \
+			resp=obj["IPAddress"] if "IPAddress" in obj else ""; \
+			print resp' 2> /dev/null)
+				
+    if [ "$IP_INFO" != "" ]; then 
+      IFS="/" read -ra IPADDR <<< "$IP_INFO"
+      # need to validate the ip and netmask, but for now assume it's correct
+      NODE_IP=${IPADDR[0]}
+      NETMASK=$(python -c "import socket,struct; \
+				quad=socket.inet_ntoa(struct.pack('>I', (0xffffffff << (32 - ${IPADDR[1]})) & 0xffffffff)); \
+				print quad")
 	fi
-	log_msg "-> Gluster Node IP .... $NODE_IP"			
+	
+	log_msg "-> Gluster Node IP .... $IP_INFO"			
     NODENAME=$(echo $etcd_data | \
-				python -c 'import json,sys;obj=json.load(sys.stdin);print obj["GlusterNodeName"]' 2> /dev/null)
-    if [ $? -gt 0 ]; then 
+				python -c 'import json,sys;obj=json.load(sys.stdin); \
+				resp=obj["GlusterNodeName"] if "GlusterNodeName" in obj else ""; \
+				print resp' 2> /dev/null)
+    if [ "$NODENAME" == "" ]; then 
 	  unset NODENAME
 	fi			
 	log_msg "-> Gluster Name ....... $NODENAME"			
-	PEER_UUID=$(echo $etcd_data | \
-				python -c 'import json,sys;obj=json.load(sys.stdin);print obj["PeerUUID"]' 2> /dev/null)
-	if [ $? -gt 0 ]; then 
-	  unset PEER_UUID
-	fi	
-	log_msg "-> UUID ............... $PEER_UUID"				
-	
-	PEER_LIST=$(echo $etcd_data | \
-				python -c 'import json,sys;config=json.load(sys.stdin); peer_ips=",".join([peer["IP"] for peer in config["PeerList"]]) if "PeerList" in config else None; print peer_ips' 2> /dev/null)
+
+    PEER_LIST=$(echo $etcd_data | \
+				python -c 'import json,sys;config=json.load(sys.stdin); \
+				peer_ips=",".join([peer["IP"] for peer in config["PeerList"]]) if "PeerList" in config else None; \
+				print peer_ips' 2> /dev/null)
 	if [ "$PEER_LIST" == "None" ]; then 
 	  unset PEER_LIST
 	  log_msg "-> container will not attempt to form a cluster"
@@ -113,18 +117,27 @@ function set_network_config {
   fi  
 }
 
-function IP_OK {
+function configure_brick {
+  # check if a glusterfs brick is present, and mount accordingly
   #
-  # check that the NODE_IP matches one of the IP's on the host machine
-  #
+  # Assume the vg is called gluster, and the thin pool is called brickpool 
+  local lv_list=($(lvs --noheadings -S vg_name=gluster,pool_lv=brickpool -o lv_name 2> /dev/null))
   
-  IFS=$'\n' IP_LIST=($(ip -4 -o addr | sed -e "s/\//\ /g"| awk '{print $4;}'))
-  if element_in $NODE_IP ${IP_LIST[@]} ; then 
-    return 0
+  if [ ${#lv_list[@]} -gt 0 ]; then 
+    mkdir /gluster
+    for lv in ${lv_list[@]}; do
+      brick=$(echo "${lv}" | sed 's/\ //g')
+      log_msg "Adding LV ${brick} to fstab at /gluster/${brick}"
+      mkdir /gluster/${brick}
+      echo -e "/dev/gluster/${brick}\t/gluster/${brick}\t\txfs\t"\
+		  	  "defaults,inode64,noatime\t0 0" | tee -a /etc/fstab > /dev/null
+    done
+    log_msg "Mounting the brick(s) to this container" 
+    mount -a
   else
-    return 1 
+    log_msg "No compatible disks detected on this host"
   fi
-	
+   
 }
 
 function configure_network {
@@ -140,17 +153,27 @@ function configure_network {
   else
     
     log_msg "checking $NODE_IP is available on this host"
-    if IP_OK; then 
+    if IP_OK $NODE_IP; then 
         
       # IP address provided is valid, so configure the services
       log_msg "$NODE_IP is valid"
-      log_msg "Updating glusterd to bind only to $NODE_IP"
-      sed -i.bkup "/end-volume/i \ \ \ \ option transport.socket.bind-address ${NODE_IP}" /etc/glusterfs/glusterd.vol
+      
+      log_msg "Checking glusterd is only binding to $NODE_IP"
+      if ! grep $NODE_IP /etc/glusterfs/glusterd.vol &> /dev/null; then
+        log_msg "Updating glusterd to bind only to $NODE_IP"
+        sed -i.bkup "/end-volume/i \ \ \ \ option transport.socket.bind-address ${NODE_IP}" /etc/glusterfs/glusterd.vol
+      else
+        log_msg "glusterd already set to $NODE_IP"
+      fi
+      
+      # ssh config and hostname settings are not persisted, so need to 
+      # be reset on startup
       log_msg "Updating sshd to bind only to $NODE_IP"
       sed -i.bkup "/#ListenAddress 0/c\ListenAddress $NODE_IP" /etc/ssh/sshd_config
+      
       log_msg "Setting container hostname to $NODENAME"
       cp /etc/hostname /etc/hostname.bkup
-      echo $NODENAME | tee /etc/hostname 2&>1 
+      echo $NODENAME | tee /etc/hostname > /dev/null 
       hostname $NODENAME
         
     else
@@ -165,30 +188,53 @@ function configure_network {
 
 set_network_config
 
-if [ -e /var/lib/glusterd/glusterd.info ]; then 
-
-  if [ -z ${PEER_UUID+x} ]; then  
-  
-    log_msg "Renaming the pre-built UUID file to force a new UUID to be generated on glusterd startup"
-    mv /var/lib/glusterd/glusterd.{info,info.bkup}
-    
-  else
-  
-    log_msg "Updating container's UUID to the value from the KV store ($PEER_UUID)"
-    sed -i.bak "/^UUID=/c\UUID=${PEER_UUID}" /var/lib/glusterd/glusterd.info
-    
-  fi
-  
+if [ ! -e /etc/glusterfs/glusterd.vol ]; then
+  # this is the first run, so we need to seed the configuration
+  log_msg "Seeding the configuration directories"
+  cp -pr /build/config/etc/glusterfs/* /etc/glusterfs
+  cp -pr /build/config/var/lib/glusterd/* /var/lib/glusterd
+  cp -pr /build/config/var/log/glusterfs/* /var/log/glusterfs
 fi
+
+# from glusterfs 3.7.3, the peer UUID is not set after install - it's set at 1st startup
+# which means fro our containers, we don't need to manipulate it at the container level
+
+#if [ -z ${PEER_UUID+x} ]; then  
+#  
+#  log_msg "Renaming the pre-built UUID file to force a new UUID to be generated on glusterd startup"
+#  mv /var/lib/glusterd/glusterd.{info,info.bkup}
+#    
+#else
+#  
+#  log_msg "Updating container's UUID to the value from the KV store ($PEER_UUID)"
+#  sed -i.bak "/^UUID=/c\UUID=${PEER_UUID}" /var/lib/glusterd/glusterd.info
+#    
+#fi
 
 if glusterd_port_available; then 
 
   configure_network
   
-  # if we have peers defined, then fork a shell to try and create the cluster
-  if [ ! -z ${PEER_LIST+x} ] ; then 
-    log_msg "forking the create_cluster process"
-    /create_cluster.sh "$NODE_IP" "$PEER_LIST" &
+  configure_brick
+  
+  # if we have peers defined and the ccontainer doesn't have any existing
+  # peers, fork a shell to try and create the cluster
+  
+  if empty_dir /var/lib/glusterd/peers  ; then 
+    
+    log_msg "Existing peer node definitions have not been found"  
+    if [ ! -z ${PEER_LIST+x} ]; then 
+      
+      log_msg "Using the list of peers from the etcd configuration"
+      log_msg "Forking the create_cluster process"
+      /build/create_cluster.sh "$NODE_IP" "$PEER_LIST" &
+      
+    fi
+     
+  else
+  
+    log_msg "Using peer definition from previous container start"
+    
   fi
   
   # start normal systemd start-up process

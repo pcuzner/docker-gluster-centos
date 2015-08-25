@@ -2,5 +2,4 @@
   "HostName": "atomic-4",
   "GlusterNodeName": "gluster-4",
   "IPAddress": "10.1.1.4",
-  "PeerUUID": "9e51afff-9e33-4830-9759-cd4258389de2"
 }

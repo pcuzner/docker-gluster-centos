@@ -5,8 +5,8 @@ ABORT_TIMEOUT=600
 FOUND_OPEN=0
 GLUSTERD_PORT=24007
 
-if [ -e /utils.sh ]; then 
-	. /utils.sh
+if [ -e /build/utils.sh ]; then 
+	. /build/utils.sh
 fi
 
 function detect_glusterd_nodes {

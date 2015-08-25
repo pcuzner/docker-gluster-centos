@@ -1,0 +1,2 @@
+1) if you use the kv store option and the json is invalid, the entrypoint.sh script will just exit during the 'get_config_from_kvstore' function
+2) self heal is not working - containers are binding to an IP, but self heal is trying to contact 127.0.0.1:24007
