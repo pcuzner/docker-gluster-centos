@@ -1,5 +1,5 @@
 {
-  "HostName": "atomic-3",
+  "HostName2": "atomic-3",
   "GlusterNodeName": "gluster-3",
-  "IPAddress": "10.1.1.3",
+  "IPAddress": "10.1.1.3/24",
 }

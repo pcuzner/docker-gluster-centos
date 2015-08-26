@@ -1,6 +1,6 @@
 {
   "HostName": "atomic-2",
   "GlusterNodeName": "gluster-2",
-  "IPAddress": "10.1.1.2",
+  "IPAddress": "10.1.1.2/24",
   "BrickDevice": "/dev/sda"
 }
