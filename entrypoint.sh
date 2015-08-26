@@ -54,12 +54,21 @@ function get_config_from_kvstore {
       IFS="/" read -ra IPADDR <<< "$IP_INFO"
       # need to validate the ip and netmask, but for now assume it's correct
       NODE_IP=${IPADDR[0]}
-      NETMASK=$(python -c "import socket,struct; \
+      if [ "${IPADDR[1]}" != "" ]; then 
+        NETMASK=$(python -c "import socket,struct; \
 				quad=socket.inet_ntoa(struct.pack('>I', (0xffffffff << (32 - ${IPADDR[1]})) & 0xffffffff)); \
 				print quad")
+	  else
+	    # assume /24 subnet if none provided
+	    NETMASK="255.255.255.0"
+	    log_msg "WARNING: IP configuration did not provide a mask,"\
+				" assuming /24 subnet"
+	  fi
+	  
 	fi
 	
-	log_msg "-> Gluster Node IP .... $IP_INFO"			
+	log_msg "-> Gluster Node IP .... $IP_INFO"
+				
     NODENAME=$(echo $etcd_data | \
 				python -c 'import json,sys;obj=json.load(sys.stdin); \
 				resp=obj["GlusterNodeName"] if "GlusterNodeName" in obj else ""; \
