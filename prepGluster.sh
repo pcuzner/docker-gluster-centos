@@ -4,6 +4,9 @@
 # gluster container. 
 #
 
+# port 2379 is assumed, since this is the IANA registered client port
+# for etcd
+ETCD_PORT=2379
 
 if [ -e $(pwd)/utils.sh ]; then 
   . $(pwd)/utils.sh
@@ -14,7 +17,7 @@ function get_etcd_config {
 
   local host_name=$(hostname -s)
   
-  etcd_response=$(curl -s http://${KV_IP}:4001/v2/keys/gluster/config/$host_name)
+  etcd_response=$(curl -s http://${KV_IP}:${ETCD_PORT}/v2/keys/gluster/config/$host_name)
   if [[ "$etcd_response" == *"error"* ]]; then  
   
     echo "etcd config entry for this host does not exist"
@@ -74,7 +77,7 @@ function etcd_ok {
     return 
   fi
   
-  if port_open ${KV_IP} 4001; then 
+  if port_open ${KV_IP} ${ETCD_PORT}; then 
     echo 0
     return
   fi
