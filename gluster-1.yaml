@@ -1,0 +1,44 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gluster-1
+  labels:
+    name: gluster-1
+spec:
+  hostNetwork: true
+  nodeSelector:
+    GlusterNode: gluster-1
+  containers:
+    - name: glusterfs
+      image: pcuzner/glusterfs-centos
+      ports:
+        - name: web
+          containerPort: 80
+      env:
+        - name: KV_IP
+          value: kubernetes
+      volumeMounts:
+          - name: glusterfs-etc
+            mountPath: "/etc/glusterfs"
+          - name: glusterfs-logs
+            mountPath: "/var/log/glusterfs"
+          - name: glusterfs-config
+            mountPath: "/var/lib/glusterd"
+          - name: glusterfs-devtree
+            mountPath: "/dev"
+      securityContext: 
+       capabilities: {}
+       privileged: true
+  volumes:
+    - name: glusterfs-etc
+      hostPath:
+        path: "/etc/glusterfs"
+    - name: glusterfs-logs
+      hostPath:
+        path: "/var/log/glusterfs"
+    - name: glusterfs-config
+      hostPath:
+        path: "/var/lib/glusterd"
+    - name: glusterfs-devtree
+      hostPath:
+        path: "/dev"
