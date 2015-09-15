@@ -10,7 +10,7 @@ RUN yum -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.n
 
 RUN yum -y swap -- remove fakesystemd -- install systemd systemd-libs
 
-RUN yum --setopt=tsflags=nodocs -y install nfs-utils nmap-ncat \
+RUN yum --setopt=tsflags=nodocs -y install xfsprogs nfs-utils nmap-ncat \
     openssh-server openssh-clients attr iputils iproute net-tools \
     glusterfs glusterfs-server glusterfs-fuse glusterfs-geo-replication \
     glusterfs-cli glusterfs-api && yum clean all -y
