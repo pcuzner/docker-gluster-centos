@@ -65,7 +65,7 @@ while getopts ":p:hf:d:" opt; do
       exit 0
       ;;
     p )
-      PEER_STRING="--peers ${OPTARG}:4001"
+      PEER_STRING="--peers ${OPTARG}"
       echo "Using etcd peer IP of ${OPTARG}"
       ;;
     \?)
