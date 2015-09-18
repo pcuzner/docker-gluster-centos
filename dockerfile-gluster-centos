@@ -21,9 +21,9 @@ RUN systemctl enable glusterd.service sshd.service
 
 RUN mkdir -p /build/config/{etc/glusterfs,var/lib/glusterd,var/log/glusterfs}
 
-RUN cp -pr /etc/glusterfs/* /build/config/etc/glusterfs
-RUN cp -pr /var/lib/glusterd/* /build/config/var/lib/glusterd
-RUN cp -pr /var/log/glusterfs/* /build/config/var/log/glusterfs
+RUN cp -pr /etc/glusterfs/* /build/config/etc/glusterfs && \
+    cp -pr /var/lib/glusterd/* /build/config/var/lib/glusterd && \
+    cp -pr /var/log/glusterfs/* /build/config/var/log/glusterfs
 
 ADD entrypoint.sh /build/entrypoint.sh
 ADD utils.sh /build/utils.sh
