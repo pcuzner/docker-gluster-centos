@@ -119,6 +119,11 @@ function set_network_config {
 
     fi
 
+    log_msg "Setting container hostname to $NODENAME"
+    cp /etc/hostname /etc/hostname.bkup
+    echo $NODENAME | tee /etc/hostname > /dev/null 
+    hostname $NODENAME
+
     # To proceed, we need a NODE_IP and NODENAME to setup the container
     # on the hosts interface        
     if [[ -z ${NODE_IP+x} || -z ${NODENAME+x} ]]; then 
@@ -184,11 +189,6 @@ function configure_network {
       log_msg "Updating sshd to bind only to $NODE_IP"
       sed -i.bkup "/#ListenAddress 0/c\ListenAddress $NODE_IP" /etc/ssh/sshd_config
       
-      log_msg "Setting container hostname to $NODENAME"
-      cp /etc/hostname /etc/hostname.bkup
-      echo $NODENAME | tee /etc/hostname > /dev/null 
-      hostname $NODENAME
-        
     else
         
       log_msg "IP address $NODE_IP is not available on this host. Can not start the container"
