@@ -130,6 +130,21 @@ function set_network_config {
   fi  
 }
 
+function valid_lvname {
+  local size=${#1}
+  local sfx=${1: -2}
+  
+  # a gluster snapshot lv looks like 03613e95ee644159919541c32f45b45d_0
+  # so, look at the lvname and if it looks like a snapshot return a 
+  # not valid result
+  if [ $size -ge 34 ] && [ $sfx == "_0" ]; then
+    return 1
+  else
+    return 0
+  fi
+}
+
+
 function configure_brick {
   # check if a glusterfs brick is present, and mount accordingly
   #
@@ -139,11 +154,16 @@ function configure_brick {
   if [ ${#lv_list[@]} -gt 0 ]; then 
     mkdir /gluster
     for lv in ${lv_list[@]}; do
-      brick=$(echo "${lv}" | sed 's/\ //g')
-      log_msg "Adding LV ${brick} to fstab at /gluster/${brick}"
-      mkdir /gluster/${brick}
-      echo -e "/dev/gluster/${brick}\t/gluster/${brick}\t\txfs\t"\
-		  	  "defaults,inode64,noatime\t0 0" | tee -a /etc/fstab > /dev/null
+      if valid_lvname $lv; then 
+        brick=$(echo "${lv}" | sed 's/\ //g')
+        log_msg "Adding LV ${brick} to fstab at /gluster/${brick}"
+        mkdir /gluster/${brick}
+        echo -e "/dev/gluster/${brick}\t/gluster/${brick}\t\txfs\t"\
+		     	"defaults,inode64,noatime\t0 0" | tee -a /etc/fstab > /dev/null
+	  else 
+        log_msg "Skipping ${lv} - not a valid name to mount to the filesystem (snapshot?)"	  
+      fi
+
     done
     log_msg "Mounting the brick(s) to this container" 
     mount -a
