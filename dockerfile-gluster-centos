@@ -8,7 +8,7 @@ RUN curl -o /etc/yum.repos.d/glusterfs-epel.repo \
 
 RUN yum -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm 
 
-RUN yum -y swap -- remove fakesystemd -- install systemd systemd-libs
+#RUN yum -y swap -- remove fakesystemd -- install systemd systemd-libs
 
 RUN yum --setopt=tsflags=nodocs -y install xfsprogs nfs-utils nmap-ncat \
     openssh-server openssh-clients attr iputils iproute net-tools \
