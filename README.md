@@ -145,7 +145,7 @@ Sep 18 03:28:27 gluster-1    [create_cluster.sh] All nodes requested added to th
 ##Managing glusterfs  
 once the containers are started, the first invocation will attempt to automatically create the cluster for you based on the PeerList setting in the configuration file (as shown above). To login to the container(s), you can either login to the container via docker, kubernetes or use ssh directly to the containers IP (10.1.1.1 or 10.1.1.2).  
 ```
--bash-4.3# kubectl exec -it gluster-1 bash 
+-bash-4.3# docker exec -it gluster-1 bash 
 [root@gluster-1 /]# gluster pool list 
 UUID					Hostname 	State
 09e5a114-f651-49f3-a9b0-520ba863a3a7	10.1.1.2 	Connected 
